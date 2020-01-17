@@ -97,9 +97,9 @@ def process(line):
     return format_output(headword, sense_number, subentry, pronunciation, grammatical_info, parenthesis_contents, definition)
 
 def run_test(input, expected_output):
-    output = process(test_line)
+    output = process(input)
     if output != expected_output:
-        print("Unexpected results from test: got", output, "and expected", expected_output, file=sys.stderr)
+        print("Unexpected results from", input, ": got", output, "and expected", expected_output, file=sys.stderr)
         exit(2)
 
 def process_input():
@@ -112,5 +112,12 @@ def process_input():
             print(result)
         lastline = line
 
-run_test"បើក ១ /បើក/ កិ. ធ្វើឱ្យច្រហ, ឱ្យមានផ្លូវ, មានទំនង...។", "បើក|១||/បើក/|កិ.||ធ្វើឱ្យច្រហ, ឱ្យមានផ្លូវ, មានទំនង...។")
+for input, expected_output in [
+    ("បើក ១ /បើក/ កិ. ធ្វើឱ្យច្រហ, ឱ្យមានផ្លូវ, មានទំនង...។",
+     "បើក|១||/បើក/|កិ.||ធ្វើឱ្យច្រហ, ឱ្យមានផ្លូវ, មានទំនង...។"),
+
+    ("បស្ចិមទិស /បាស់-ចិម-ទឹស/ ឬ /ប៉ាច់-ចិម-ម៉ៈ-ទឹស/ ន. ",
+     "បស្ចិមទិស|||/បាស់-ចិម-ទឹស/ ឬ /ប៉ាច់-ចិម-ម៉ៈ-ទឹស/|ន.||"),
+]:
+    run_test(input, expected_output)
 process_input()
