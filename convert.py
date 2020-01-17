@@ -3,8 +3,7 @@
 import fileinput
 import re
 import sys
-
-khmer_numerals = "០១២៣៤៥៦៧៨៩"
+import csv
 
 def is_even(n):
     return n % 2 == 0
@@ -47,11 +46,6 @@ def fix_typoes(line):
     # There is one line containing "/ឬ " where it should have been "/ ឬ " with an extra space. This becomes
     # important in our pronunciation handling later.
     return line.replace("/ឬ ", "/ ឬ ")
-
-numbers = []
-
-def format_output(headword, sense_number, subentry, pronunciation, grammatical_info, parenthesis_contents, definition):
-    return "{}|{}|{}|{}|{}|{}|{}".format(headword, sense_number, subentry, pronunciation, grammatical_info, parenthesis_contents, definition)
 
 most_recent_headword = ""
 def process(line):
@@ -113,7 +107,7 @@ def process(line):
     else:
         # Any lines that still don't contain a slash are not actual input data
         return None
-    return format_output(headword, sense_number, subentry, pronunciation, grammatical_info, parenthesis_contents, definition)
+    return (headword, sense_number, subentry, pronunciation, grammatical_info, parenthesis_contents, definition)
 
 def run_test(input, expected_output):
     output = process(input)
@@ -122,16 +116,17 @@ def run_test(input, expected_output):
         exit(2)
 
 def process_input():
+    outfile = csv.writer(sys.stdout)
     lastline = ""
     last_complete_line = ""
-    print(format_output("Headword", "Sense number", "Subentry", "Pronunciation", "Part of Speech", "Source/Etymology", "Definition"))
+    outfile.writerow(("Headword", "Sense number", "Subentry", "Pronunciation", "Part of Speech", "Source/Etymology", "Definition"))
     for line in fileinput.input():
         ready, maybe_fixed_line = fix_badly_wrapped_lines(lastline, line)
         fixed_line = fix_typoes(maybe_fixed_line)
         if ready:
             result = process(last_complete_line)
             if result is not None:
-                print(result)
+                outfile.writerow(result)
         # If fix_badly_wrapped_lines returned an empty string, then we're not supposed to overwrite the previous completed line
         if maybe_fixed_line:
             last_complete_line = fixed_line
@@ -139,17 +134,17 @@ def process_input():
     # Don't forget to process the last complete line, which won't have been output by the loop above
     last_result = process(last_complete_line)
     if last_result is not None:
-        print(last_result)
+        outfile.writerow(last_result)
 
 for input, expected_output in [
     ("បើក ១ /បើក/ កិ. ធ្វើឱ្យច្រហ, ឱ្យមានផ្លូវ, មានទំនង...។",
-     "បើក|១||បើក|កិ.||ធ្វើឱ្យច្រហ, ឱ្យមានផ្លូវ, មានទំនង...។"),
+     ('បើក', '១', '', 'បើក', 'កិ.', '', 'ធ្វើឱ្យច្រហ, ឱ្យមានផ្លូវ, មានទំនង...។')),
 
     ("បស្ចិមទិស /បាស់-ចិម-ទឹស/ ឬ /ប៉ាច់-ចិម-ម៉ៈ-ទឹស/ ន. ",
-     "បស្ចិមទិស|||បាស់-ចិម-ទឹស ឬ ប៉ាច់-ចិម-ម៉ៈ-ទឹស|ន.||"),
+     ('បស្ចិមទិស', '', '', 'បាស់-ចិម-ទឹស ឬ ប៉ាច់-ចិម-ម៉ៈ-ទឹស', 'ន.', '', '')),
 
     ("ប្អ៊ឹះ /ប្អ៊ឹះ/ គុ. ឬ កិ.វិ.",
-     "ប្អ៊ឹះ|||ប្អ៊ឹះ|គុ. ឬ កិ.វិ.||"),
+     ('ប្អ៊ឹះ', '', '', 'ប្អ៊ឹះ', 'គុ. ឬ កិ.វិ.', '', '')),
 ]:
     run_test(input, expected_output)
 process_input()
