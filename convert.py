@@ -84,10 +84,11 @@ def process(line):
             definition = after.strip()
         else:
             # Some lines have "..." in them, so we need to search for a dot NOT preceded or followed by another dot
-            dots_match = re.search(r"((?<!\.)\.(?!\.))", parts[0])
-            if dots_match:
-                grammatical_info = dots_match.string[:dots_match.end(1)]
-                definition = dots_match.string[dots_match.end(1):].strip()
+            dots_matches = list(re.finditer(r"((?<!\.)\.(?!\.))", parts[0]))
+            if len(dots_matches) > 0:
+                last_match = dots_matches[-1]
+                grammatical_info = last_match.string[:last_match.end(1)]
+                definition = last_match.string[last_match.end(1):].strip()
             else:
                 # No grammatical info found
                 definition = parts[0].strip()
