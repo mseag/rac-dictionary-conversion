@@ -5,4 +5,5 @@ A simple script to parse a dictionary file in MS Word format and produce an Exce
 ## Instructions
 
 * Install Python 3
-* Run `python3 convert.py input.txt`
+* Run `python3 convert.py input.txt > output.csv`
+* Import `output.csv` into Excel, specifying | (vertical bar) character as the separator
