@@ -49,11 +49,15 @@ def process(line):
     grammatical_info = ""
     parenthesis_contents = ""
     definition = ""
-    parts = re.split("/", line, 2)
-    if len(parts) > 2:
-        before, middle, after = parts
+
+    # First, extract pronunciation, taking into account that there could be more than one
+    parts = re.split("(/)", line)
+    if len(parts) > 1:
+        before = parts[0]
+        middle = "".join(parts[1:-1])
+        after = parts[-1]
+
         pronunciation = middle.strip()
-        # print(before.strip(), "-|-", mid.strip(), "-|-", after.strip())
 
         # Extract sense number if present
         parts = re.split(r"(\d+)", before.rstrip(), 1)  # \d also matches [០-៩] thanks to Unicode
@@ -95,7 +99,7 @@ def process(line):
 
 def run_test():
     test_line = "បើក ១ /បើក/ កិ. ធ្វើឱ្យច្រហ, ឱ្យមានផ្លូវ, មានទំនង...។"
-    expected_output = "បើក|១||បើក|កិ.||ធ្វើឱ្យច្រហ, ឱ្យមានផ្លូវ, មានទំនង...។"
+    expected_output = "បើក|១||/បើក/|កិ.||ធ្វើឱ្យច្រហ, ឱ្យមានផ្លូវ, មានទំនង...។"
 
     output = process(test_line)
     if output != expected_output:
