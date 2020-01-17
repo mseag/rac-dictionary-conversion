@@ -48,8 +48,10 @@ def fix_typoes(line):
     return line.replace("/ឬ ", "/ ឬ ")
 
 most_recent_headword = ""
+most_recent_sense_number = ""
 def process(line):
     global most_recent_headword
+    global most_recent_sense_number
     # Break line down into headword, pronunciation, etc.
     headword = ""
     sense_number = ""
@@ -81,9 +83,11 @@ def process(line):
         if re.match(r"^\s", headword):
             subentry = headword.strip()
             headword = most_recent_headword
+            sense_number = most_recent_sense_number
         else:
             headword = headword.strip()
             most_recent_headword = headword
+            most_recent_sense_number = sense_number
 
         # Extract source/etymology (found in parentheses) if present
         parts = re.split(r"\((.*)\)", after.strip(), 1)
