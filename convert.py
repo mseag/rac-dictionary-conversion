@@ -4,7 +4,7 @@ import fileinput
 import re
 
 def fix_badly_wrapped_lines(lastline, line):
-    if re.match(r"^\s", line) and not re.search("/", line):
+    if not re.search("/", line):
         return lastline.rstrip() + " " + line.lstrip()
     else:
         return line.rstrip()
@@ -12,7 +12,8 @@ def fix_badly_wrapped_lines(lastline, line):
 def process(line):
     # Break line down into headword, pronunciation, etc.
     # TODO: Write this
-    pass
+    if not re.search("/", line):
+        print("Line without slash:", line)
 
 lastline = ""
 for line in fileinput.input():
