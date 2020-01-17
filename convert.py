@@ -6,11 +6,34 @@ import sys
 
 khmer_numerals = "០១២៣៤៥៦៧៨៩"
 
+def is_even(n):
+    return n % 2 == 0
+def is_odd(n):
+    return n % 2 != 0
+
 def fix_badly_wrapped_lines(lastline, line):
-    if len(re.findall("/", line)) < 2:
-        return lastline.rstrip() + " " + line.lstrip()
+    # Some lines have two pronunciations, therefore four slashes
+    # Any line with an even number of slashes is okay
+    slashes = re.findall("/", line)
+    if is_even(len(slashes)):
+        # Unless it has no slashes at all, in which case it was part of the previous line
+        if len(slashes) == 0:
+            return lastline.rstrip() + " " + line.lstrip()
+        else:
+            return line.rstrip()
+    # A line with an odd number of slashes is tricky, because we might have two lines like this:
+    # word /long-pronunciation-that-
+    #    got-split-across-lines/ definition
+    # The rule that works with our input data is that if the previous line had an even number of
+    # slashes, it was complete, so this line is the first line of a pair. But if the previous line
+    # had an odd number of slashes, this line is the second line of a pair and now we have the complete text.
+    if is_odd(len(re.findall("/", lastline))):
+        # Last line plus this line make a complete pair that can now be processed. We do NOT add a space in this scenario,
+        # since pronunciation splits almost never should have had spaces in them.
+        return lastline.rstrip() + line.lstrip()
     else:
-        return line.rstrip()
+        # Don't process this line yet since it's incomplete
+        return ""
 
 numbers = []
 
