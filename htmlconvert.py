@@ -76,23 +76,39 @@ styles_found = ['margin-left:14.7pt;text-indent:-14.7pt;line-height:90%',
  'margin-top:0in;margin-right:-7.1pt;margin-bottom:0in;margin-left:14.2pt;margin-bottom:.0001pt;text-align:justify;text-indent:-14.2pt',
  'margin-left:.25in;text-align:justify;text-indent:-.25in']
 
+def convert_to_points(text):
+    unit = text[-2:]
+    value = float(text[:-2])
+    if unit == "in":
+        return value * 72.0
+    else:
+        return value
+
 leftmargins = []
 textindents = []
+totalindents = []
 for style in styles_found:
     parts = style.split(';')
+    leftmargin = 0.0
+    textindent = 0.0
     for part in parts:
         if part.startswith('margin-left'):
-            leftmargins.append(part)
+            value = part.split(':', 1)[1]
+            leftmargin = convert_to_points(value)
+            leftmargins.append(leftmargin)
         if part.startswith('text-indent'):
-            textindents.append(part)
+            value = part.split(':', 1)[1]
+            textindent = convert_to_points(value)
+            textindents.append(textindent)
+    totalindents.append(leftmargin + textindent)
     margin_related_parts = [part for part in parts if part.startswith('text-indent') or part.startswith('margin-left')]
     if margin_related_parts:
         print(margin_related_parts)
         # TODO: Convert inches to points (1in = 72pt) and then add margin-left to text-indent to get total indentation level
         # Then print out a bunch of sample lines that are and aren't indented, and see if that matches the document
-# print("Left margins:", list(set(leftmargins)))
-# print("Text indents:", list(set(textindents)))
-
+print("Left margins:", list(set(leftmargins)))
+print("Text indents:", list(set(textindents)))
+print("Total indents in pt:", list(set(totalindents)))
 
 left_margins = ['margin-left:28.35pt', 'margin-left:14.7pt', 'margin-left:.2in', 'margin-left:14.2pt', 'margin-left:.5in', 'margin-left:.25in']
 
