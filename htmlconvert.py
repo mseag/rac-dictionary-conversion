@@ -12,25 +12,6 @@ import email.parser
 import quopri
 import html
 
-with open("Orthographe ប 21.mht", "rb") as f:
-    e = email.message_from_binary_file(f)
-
-htmlText = ""
-for part in e.walk():
-    if part.get_content_type() == "text/html":
-        htmlText = part.get_payload()
-        break
-
-if not htmlText:
-    print("Could not find HTML text")
-    sys.exit(2)
-
-b = quopri.decodestring(htmlText.encode('utf-8'))
-content = b.decode('utf-8')
-doc = html5parser.document_fromstring(content)
-body = doc[1]
-rootdiv = body[0]
-
 
 def convert_to_points(text):
     unit = text[-2:]
@@ -66,13 +47,37 @@ def look_for(rootdiv, s):
     return texts
 
 def text_of(elem):
-    return etree.tostring(p, method="text", encoding="utf-8").decode('utf-8').replace('\n', ' ')
+    return etree.tostring(elem, method="text", encoding="utf-8").decode('utf-8').replace('\n', ' ')
 
-for p in rootdiv:
-    text = text_of(p)
-    if re.match(r'\s', text) or is_indented(p):
-        print("\t{}".format(text.strip()))
-    else:
-        print(text.strip())
+def convert_file(fname):
+    out_fname = fname.replace('.mht', '.txt')
+    with open(fname, "rb") as f:
+        e = email.message_from_binary_file(f)
 
-# print(look_for(rootdiv, "បណ្ដាញ"))
+    htmlText = ""
+    for part in e.walk():
+        if part.get_content_type() == "text/html":
+            htmlText = part.get_payload()
+            break
+
+    if not htmlText:
+        print("Could not find HTML text in {}".format(fname))
+        sys.exit(2)
+
+    b = quopri.decodestring(htmlText.encode('utf-8'))
+    content = b.decode('utf-8')
+    doc = html5parser.document_fromstring(content)
+    body = doc[1]
+    rootdiv = body[-1]
+
+    with open(out_fname, "w") as out_f:
+        for p in rootdiv:
+            text = text_of(p)
+            if re.match(r'\s', text) or is_indented(p):
+                out_f.write("\t{}\n".format(text.strip()))
+            else:
+                out_f.write("{}\n".format(text.strip()))
+
+for fname in sys.argv[1:]:
+    print("Handling {}...".format(fname))
+    convert_file(fname)

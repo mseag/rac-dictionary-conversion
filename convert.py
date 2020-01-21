@@ -124,7 +124,15 @@ def process_input():
     lastline = ""
     last_complete_line = ""
     outfile.writerow(("Headword", "Sense number", "Subentry", "Pronunciation", "Part of Speech", "Source/Etymology", "Definition"))
+    at_start = True
     for line in fileinput.input():
+        if at_start:
+            if "/" not in line:
+                continue  # Skip initial set of slash-less lines, as that's the intro text
+            # Now we've seen a slash, so process this line and all subsequent lines
+            at_start = False
+        if line is None or not (line.strip()):
+            continue  # Skip blank lines
         ready, maybe_fixed_line = fix_badly_wrapped_lines(lastline, line)
         fixed_line = fix_typoes(maybe_fixed_line)
         if ready:
