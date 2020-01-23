@@ -89,6 +89,9 @@ def process(line):
             most_recent_headword = headword
             most_recent_sense_number = sense_number
 
+        # TODO: Detect examples (marked by ឧ.) in either source/etymology *or* definition, and strip them out.
+        # If a parenthesis had nothing but an example in it, then source/etymology should be empty and that goes under "example" instead.
+
         # Extract source/etymology (found in parentheses) if present
         parts = re.split(r"\((.*)\)", after.strip(), 1)
         if len(parts) > 1:
@@ -111,7 +114,7 @@ def process(line):
     else:
         # Any lines that still don't contain a slash are not actual input data
         return None
-    return (headword, sense_number, subentry, pronunciation, grammatical_info, parenthesis_contents, definition)
+    return (headword, sense_number, subentry, pronunciation, grammatical_info, parenthesis_contents, definition)  # TODO: Also return examples
 
 def run_test(input, expected_output):
     output = process(input)
@@ -119,13 +122,60 @@ def run_test(input, expected_output):
         print("Unexpected results from", input, ": got", output, "and expected", expected_output, file=sys.stderr)
         exit(2)
 
+def output_entry_details(outfile, pronunciation, grammatical_info, parenthesis_contents, definition):
+    # TODO: Also handle examples
+    if pronunciation:
+        print(r"\ph {}".format(pronunciation), file=outfile)
+    if grammatical_info:
+        print(r"\ps {}".format(grammatical_info), file=outfile)
+    if parenthesis_contents:
+        print(r"\etym {}".format(parenthesis_contents), file=outfile)
+    if definition:
+        print(r"\de {}".format(definition), file=outfile)
+
+previous_headword_for_sfm = ("", "", "", "", "", "")  # TODO: Add seventh field here once we handle examples
+previous_subentries = []
+def output_to_sfm(outfile, headword, sense_number, subentry, pronunciation, grammatical_info, parenthesis_contents, definition):  # TODO: Add example parameter as well
+    global previous_headword_for_sfm
+    global previous_subentries
+
+    if subentry and headword == previous_headword_for_sfm[0] and sense_number == previous_headword_for_sfm[1]:
+        previous_subentries.append((subentry, pronunciation, grammatical_info, parenthesis_contents, definition))
+    else:
+        # New headword, so we're done adding subentries. Print out the previous one
+        (prev_headword, prev_sense_number, prev_pronunciation, prev_grammatical_info, prev_parenthesis_contents, prev_definition) = previous_headword_for_sfm
+        print(r"\lx {}".format(prev_headword), file=outfile)
+        if prev_sense_number:
+            print(r"\sn {}".format(prev_sense_number), file=outfile)
+        output_entry_details(outfile, prev_pronunciation, prev_grammatical_info, prev_parenthesis_contents, prev_definition)
+        for subentry in previous_subentries:
+            (sub_lexeme, sub_pronunciation, sub_grammatical_info, sub_parenthesis_contents, sub_definition) = subentry  # TODO: Also handle examples
+            print(r"\se {}".format(sub_lexeme), file=outfile)
+            output_entry_details(outfile, sub_pronunciation, sub_grammatical_info, sub_parenthesis_contents, sub_definition)
+        print("", file=outfile)
+
+        previous_headword_for_sfm = (headword, sense_number, pronunciation, grammatical_info, parenthesis_contents, definition)
+        previous_subentries = []
+
 def process_input():
-    outfile = csv.writer(sys.stdout)
     lastline = ""
     last_complete_line = ""
-    outfile.writerow(("Headword", "Sense number", "Subentry", "Pronunciation", "Part of Speech", "Source/Etymology", "Definition"))
-    at_start = True
+    outfile_csv = None
+    outfile_sfm = None
+    out_sfm = None
     for line in fileinput.input():
+        if fileinput.isfirstline():
+            at_start = True
+            csv_fname = fileinput.filename().replace(".txt", ".csv")
+            sfm_fname = fileinput.filename().replace(".txt", ".sfm")
+            if outfile_csv is not None:
+                outfile_csv.close()
+            if out_sfm is not None:
+                out_sfm.close()
+            outfile_csv = open(csv_fname, "w")
+            csvwriter = csv.writer(outfile_csv)
+            csvwriter.writerow(("Headword", "Sense number", "Subentry", "Pronunciation", "Part of Speech", "Source/Etymology", "Definition"))  # TODO: Also examples
+            outfile_sfm = open(sfm_fname, "w")
         if at_start:
             if "/" not in line:
                 continue  # Skip initial set of slash-less lines, as that's the intro text
@@ -138,7 +188,8 @@ def process_input():
         if ready:
             result = process(last_complete_line)
             if result is not None:
-                outfile.writerow(result)
+                csvwriter.writerow(result)
+                output_to_sfm(outfile_sfm, *result)
         # If fix_badly_wrapped_lines returned an empty string, then we're not supposed to overwrite the previous completed line
         if maybe_fixed_line:
             last_complete_line = fixed_line
@@ -146,7 +197,12 @@ def process_input():
     # Don't forget to process the last complete line, which won't have been output by the loop above
     last_result = process(last_complete_line)
     if last_result is not None:
-        outfile.writerow(last_result)
+        csvwriter.writerow(last_result)
+        output_to_sfm(outfile_sfm, *last_result)
+    # And one last call to output_to_sfm() to flush the last entry since it's still waiting for subentries that won't be arriving
+    output_to_sfm(outfile_sfm, None, None, None, None, None, None, None)  # TODO: Add an eighth None here once we handle examples
+    outfile_csv.close()
+    outfile_sfm.close()
 
 for input, expected_output in [
     ("បើក ១ /បើក/ កិ. ធ្វើឱ្យច្រហ, ឱ្យមានផ្លូវ, មានទំនង...។",
@@ -157,6 +213,7 @@ for input, expected_output in [
 
     ("ប្អ៊ឹះ /ប្អ៊ឹះ/ គុ. ឬ កិ.វិ.",
      ('ប្អ៊ឹះ', '', '', 'ប្អ៊ឹះ', 'គុ. ឬ កិ.វិ.', '', '')),
+    # TODO: Add test to demonstrate handling examples (marked by ឧ.)
 ]:
     run_test(input, expected_output)
 process_input()
